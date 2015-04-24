@@ -12,24 +12,24 @@ public class LoginResponse implements Serializable {
 	public String msg;
 	public int code;
 	public String client_id;
-	public String user_id;
+	public String uid;
 
 
 	public LoginResponse(String type, String msg, int code, String client_id,
-			String user_id) {
+			String uid) {
 		super();
 		this.type = type;
 		this.msg = msg;
 		this.code = code;
 		this.client_id = client_id;
-		this.user_id = user_id;
+		this.uid = uid;
 	}
 
 
 	@Override
 	public String toString() {
 		return "LoginResponse [type=" + type + ", msg=" + msg + ", code="
-				+ code + ", client_id=" + client_id + ", user_id=" + user_id
+				+ code + ", client_id=" + client_id + ", uid=" + uid
 				+ "]";
 	}
 

@@ -5,20 +5,26 @@ import java.io.FileInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import android.util.Log;
+
 /*
  * md5加密工具类，可以拿来直接使用。
  */
 public class Md5Utils {
 
+	private static final String TAG = Md5Utils.class.getSimpleName();
+
 	// 对字符串进行md5加密，比如对密码进行md5加密
-	public static String encode(String password) {
+	public static String encode(String msg) {
+		
+		Log.d(TAG, " orgin msg "+msg);
 		// 得到一个信息摘要器
 		MessageDigest digest;
 		StringBuffer buffer = new StringBuffer();
 		try {
 			digest = MessageDigest.getInstance("md5");
 
-			byte[] result = digest.digest(password.getBytes());
+			byte[] result = digest.digest(msg.getBytes());
 			for (byte b : result) {
 				// 数组中的每个byte都与11111111二进制位做与运算。
 				// 11111111 表示为16进制就是0xff
@@ -38,6 +44,7 @@ public class Md5Utils {
 		}// 如果算法不存在，就会抛算法不存在异常
 			// 得到用md5加密后的结果
 			// System.out.println(buffer.toString());
+		Log.d(TAG, " encode msg "+buffer.toString());
 		return buffer.toString();// 返回的是对参数加密后的字符串
 	}
 

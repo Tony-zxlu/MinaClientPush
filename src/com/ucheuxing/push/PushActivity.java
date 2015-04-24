@@ -1,8 +1,6 @@
 package com.ucheuxing.push;
 
 import java.net.InetSocketAddress;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFuture;
@@ -12,10 +10,10 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.Activity;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -26,12 +24,13 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.ucheuxing.push.util.LogUtil;
+import com.ucheuxing.push.util.NotifyManager;
 import com.ucheuxing.push.util.SignUtil;
 
 public class PushActivity extends Activity implements OnClickListener {
 
 	private static final String TAG = PushActivity.class.getSimpleName();
-	private Button mConnectBtn, mDisconnectBtn, mSendBtn, mJsonBtn;
+	private Button mConnectBtn, mDisconnectBtn, mSendBtn;
 	private EditText mInputMsg, mIP, mPort;
 
 	private String hostname;
@@ -48,7 +47,6 @@ public class PushActivity extends Activity implements OnClickListener {
 		mConnectBtn = (Button) findViewById(R.id.btnConnect);
 		mDisconnectBtn = (Button) findViewById(R.id.btnDisconnect);
 		mSendBtn = (Button) findViewById(R.id.btnSendMsg);
-		mJsonBtn = (Button) findViewById(R.id.btnJson);
 		mInputMsg = (EditText) findViewById(R.id.textView1);
 		mIP = (EditText) findViewById(R.id.etIP);
 		mPort = (EditText) findViewById(R.id.etPort);
@@ -56,8 +54,7 @@ public class PushActivity extends Activity implements OnClickListener {
 		mConnectBtn.setOnClickListener(this);
 		mDisconnectBtn.setOnClickListener(this);
 		mSendBtn.setOnClickListener(this);
-		mJsonBtn.setOnClickListener(this);
-		
+
 		String testSign = SignUtil.testSign();
 		Log.d("sign", testSign);
 	}
@@ -88,10 +85,6 @@ public class PushActivity extends Activity implements OnClickListener {
 				}
 			});
 			break;
-		case R.id.btnJson:
-			testJson();
-			break;
-
 		default:
 			break;
 		}
@@ -99,8 +92,12 @@ public class PushActivity extends Activity implements OnClickListener {
 
 	private void connectServer() {
 		// TODO Auto-generated method stub
+
+		// 建立connect对象
 		NioSocketConnector connector = new NioSocketConnector();
+		// 为connector设置handler
 		connector.setHandler(new MinaClientHandler(PushActivity.this));
+
 		connector.getFilterChain().addLast("codec",
 				new ProtocolCodecFilter(new TextLineCodecFactory()));
 
@@ -116,29 +113,23 @@ public class PushActivity extends Activity implements OnClickListener {
 		future.awaitUninterruptibly();
 		session = future.getSession();
 		// 设置心跳
-		Timer timer = new Timer();
-		timer.schedule(new TimerTask() {
-
-			@Override
-			public void run() {
-				session.write("heart beat");
-			}
-		}, 0, 1000 * 5);
+		// Timer timer = new Timer();
+		// timer.schedule(new TimerTask() {
+		//
+		// @Override
+		// public void run() {
+		// session.write("heart beat");
+		// }
+		// }, 0, 1000 * 5);
 	}
 
-	public void testJson() {
-		String json = "{'name':'zxlu','val':100,'status':true,'f':1.0}";
-		try {
-			JSONObject jsonObject = new JSONObject(json);
-			String name = jsonObject.getString("name");
-			int val = jsonObject.getInt("val");
-			boolean status = jsonObject.getBoolean("status");
-			double f = jsonObject.getDouble("f");
-			log.d("json", " name :　" + name + " status :　" + status + " val :　"
-					+ val + " f :　" + f);
-		} catch (JSONException e) {
-			e.printStackTrace();
-			log.d("json", e.toString());
-		}
+	public void testDialog(View view) {
+		NotifyManager.showPayDialog(this, "付款成功");
+	}
+
+	public void testNotification(View view) {
+		Uri uri = RingtoneManager.getActualDefaultRingtoneUri(this,
+				RingtoneManager.TYPE_NOTIFICATION);
+		RingtoneManager.getRingtone(this, uri).play();
 	}
 }

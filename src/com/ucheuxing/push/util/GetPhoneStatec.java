@@ -78,7 +78,7 @@ public class GetPhoneStatec {
 	 * @return
 	 */
 	public static String getTime() {
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMM");
 		String str = doTrim(df.format(new Date()));
 		return str;
 	}

@@ -18,7 +18,7 @@
             android:id="@+id/etIP"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="192.168.1.37" />
+            android:text="192.168.1.8" />
     </LinearLayout>
 
     <LinearLayout
@@ -35,7 +35,7 @@
             android:id="@+id/etPort"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="9999" />
+            android:text="8888" />
     </LinearLayout>
 
     <Button
@@ -61,10 +61,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="发送消息" />
+
     <Button
-        android:id="@+id/btnJson"
+        android:id="@+id/button2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="测试Json" />
+        android:onClick="testDialog"
+        android:text="Test Dialog" />
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="testNotification"
+        android:text="Test Notification" />
+    
 
 </LinearLayout>

@@ -1,5 +1,6 @@
 package com.ucheuxing.push;
 
+import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
@@ -11,21 +12,22 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.google.gson.Gson;
+import com.ucheuxing.push.bean.HeartBeatFeedBack;
+import com.ucheuxing.push.bean.InitConnect;
 import com.ucheuxing.push.bean.LoginRequest;
 import com.ucheuxing.push.bean.LoginResponse;
-import com.ucheuxing.push.bean.NotifyConnect;
+import com.ucheuxing.push.bean.PayNotify;
 import com.ucheuxing.push.receiver.UUPushBaseReceiver;
 import com.ucheuxing.push.util.GetPhoneStatec;
 import com.ucheuxing.push.util.LogUtil;
-import com.ucheuxing.push.util.NetUtils;
 import com.ucheuxing.push.util.SignUtil;
+
 public class MinaClientHandler extends IoHandlerAdapter {
 
 	private static final String TAG = MinaClientHandler.class.getSimpleName();
 
-	private static final String TYPE = "type";
-	private static final String CODE = "code";
-	private static final String OBJ = "obj";
+	public static final String TYPE = "type";
+	public static final String DATA = "data";
 
 	private Gson gson;
 
@@ -54,30 +56,46 @@ public class MinaClientHandler extends IoHandlerAdapter {
 		if (!(message instanceof String))
 			return;
 		String jsonStr = (String) message;
-		int code = getCodeFromJson(jsonStr);
+		log.d(jsonStr);
+		// 过滤类型
 		Intent intent = new Intent(UUPushBaseReceiver.UCHEUXING_PUSH_ACTION);
-		if (code != 0) {// 数据错误
-			intent.putExtra(TYPE, BusinessType.RET_DATA_ERROR);
-			mContext.sendBroadcast(intent);
-			return;
+		BusinessType type = getTypeFromJson(jsonStr);
+		
+		if (type == null) {
+			throw new IllegalArgumentException(
+					" The msg type must be BusinessType ");
 		}
 
-		// 数据OK
-		BusinessType type = getTypeFromJson(jsonStr);
 		intent.putExtra(TYPE, type);
-		if (type == null)
-			// TODO: throw an exception
-			return;
+		// 过滤信息是否正确
+//		int code = getCodeFromJson(jsonStr);
+//		if (code != 0) {// 数据错误
+//			intent.putExtra(TYPE, BusinessType.RET_DATA_ERROR);
+//			mContext.sendBroadcast(intent);
+//			return;
+//		}
+
 		switch (type) {
-		case LOGIN:
-			LoginResponse loginResponse = gson.fromJson(jsonStr, LoginResponse.class);
-			intent.putExtra(OBJ, loginResponse);
+		case CONNECT://连接初始化
+			InitConnect initConnect = gson.fromJson(jsonStr, InitConnect.class);
+			intent.putExtra(DATA, initConnect);
+			sendLoginRequest(session, initConnect);
 			break;
-		case CONNECT:
-			NotifyConnect notifyConnect = gson.fromJson(jsonStr,
-					NotifyConnect.class);
-			intent.putExtra(OBJ, notifyConnect);
-			sendLoginRequest(session, notifyConnect);
+			
+		case LOGIN://登录反馈
+			LoginResponse loginResponse = gson.fromJson(jsonStr,
+					LoginResponse.class);
+			intent.putExtra(DATA, loginResponse);
+			break;
+			
+		case PING:// 服务端测试联通性
+			sendPingFeedBack(session);
+			break;
+			
+		case PAY:// 付款的通知
+			PayNotify payNotify = gson.fromJson(jsonStr, PayNotify.class);
+			intent.putExtra(DATA, payNotify);
+			sendPayFeedBack(session,payNotify);
 			break;
 
 		default:
@@ -88,15 +106,28 @@ public class MinaClientHandler extends IoHandlerAdapter {
 		log.d("messageReceived : " + jsonStr.toString());
 	}
 
-	private void sendLoginRequest(IoSession session, NotifyConnect notifyConnect) {
-		SignUtil netUtils = new SignUtil(mContext);
+	//
+	private void sendPayFeedBack(IoSession session, PayNotify paymentNotify) {
+		
+	}
+
+	private void sendPingFeedBack(IoSession session) {
+		if (session != null && session.isConnected()) {
+			HeartBeatFeedBack heartBeatFeedBack = new HeartBeatFeedBack("pong");
+			String jsonStr = gson.toJson(heartBeatFeedBack);
+			session.write(jsonStr);
+		}
+	}
+
+	private void sendLoginRequest(IoSession session, InitConnect initConnect) {
+		SignUtil signUtil = new SignUtil(mContext);
 		LoginRequest loginRequest = new LoginRequest("login",
-				netUtils.getSign(), GetPhoneStatec.getClientType(),
-				GetPhoneStatec.getVersionName(mContext),
-				notifyConnect.client_id, "userid01");
+				signUtil.getSign(), GetPhoneStatec.getClientType(),
+				GetPhoneStatec.getVersionName(mContext), initConnect.client_id,
+				"userid01");
 		String logingRequestStr = gson.toJson(loginRequest);
 		if (session != null && session.isConnected()) {
-			session.write(logingRequestStr);
+			WriteFuture write = session.write(logingRequestStr);
 		}
 	}
 
@@ -134,18 +165,6 @@ public class MinaClientHandler extends IoHandlerAdapter {
 
 	// /////////////////////////////////////////////
 
-	private int getCodeFromJson(String jsonStr) {
-		int code = -1;
-		try {
-			JSONObject jsonObject = new JSONObject(jsonStr);
-			code = jsonObject.getInt(CODE);
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return code;
-	}
-
 	@SuppressLint("DefaultLocale")
 	private BusinessType getTypeFromJson(String jsonStr) {
 		BusinessType type = null;
@@ -160,8 +179,15 @@ public class MinaClientHandler extends IoHandlerAdapter {
 		return type;
 	}
 
+	/**
+	 * CONNECT:连接初始化后，服务端分配clientid LOGIN：登录请求，携带md5值和userid、clientid
+	 * PING：服务端的连接检测 PAY:付款成功通知
+	 * 
+	 * @author Tony DateTime 2015-4-24 下午1:01:34
+	 * @version 1.0
+	 */
 	public enum BusinessType {
-		CONNECT, LOGIN, RE_LOGIN, RET_DATA_ERROR
+		CONNECT, LOGIN, RE_LOGIN, RET_DATA_ERROR, PING, PAY
 	}
 
 }

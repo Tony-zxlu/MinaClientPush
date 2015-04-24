@@ -9,13 +9,16 @@ import android.text.TextUtils;
 
 import com.ucheuxing.push.MinaClientHandler.BusinessType;
 import com.ucheuxing.push.bean.LoginResponse;
-import com.ucheuxing.push.bean.NotifyConnect;
+import com.ucheuxing.push.bean.InitConnect;
+import com.ucheuxing.push.bean.PayNotify;
 import com.ucheuxing.push.util.ToastUtils;
-
+import static com.ucheuxing.push.MinaClientHandler.*;
 public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 
 	public static final String UCHEUXING_PUSH_ACTION = "com.ucheuxing.action.push";
 	public static final String CONNECTIVITY_CHANGE_ACTION = "android.net.conn.CONNECTIVITY_CHANGE";
+	
+	
 
 	/**
 	 * loging success
@@ -28,33 +31,43 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 	 */
 	public abstract void onLoginSuccess(Context mContext, LoginResponse loginParam);
 	
-	public abstract void onInitSuccess(Context mContext, NotifyConnect notifyConnect);
+	public abstract void onConnectSuccess(Context mContext, InitConnect notifyConnect);
+	
+	public abstract void onPayNotify(Context mContext, PayNotify payNotify);
 
 	@Override
-	public void onReceive(Context context, Intent intent) {
+	public void onReceive(Context mContext, Intent intent) {
 		String action = intent.getAction();
 		if (TextUtils.equals(action, UCHEUXING_PUSH_ACTION)) {// we need the
 																// action
 			BusinessType type = (BusinessType) intent
-					.getSerializableExtra("type");
+					.getSerializableExtra(TYPE);
 
 			switch (type) {
 			case LOGIN:
-				LoginResponse loginParam = (LoginResponse) intent
-						.getSerializableExtra("obj");
-				onLoginSuccess(context, loginParam);
+				LoginResponse loginResponse = (LoginResponse) intent
+						.getSerializableExtra(DATA);
+				onLoginSuccess(mContext, loginResponse);
 				break;
 			case CONNECT:
-				NotifyConnect notifyConnect = (NotifyConnect) intent
-				.getSerializableExtra("obj");
-				onInitSuccess(context, notifyConnect);
+				InitConnect notifyConnect = (InitConnect) intent
+				.getSerializableExtra(DATA);
+				onConnectSuccess(mContext, notifyConnect);
+				break;
+				
+			case PING:
+				break;
+				
+			case PAY:
+				PayNotify payNotify = (PayNotify) intent.getSerializableExtra(DATA);
+				onPayNotify(mContext, payNotify);
 				break;
 
 			default:
 				break;
 			}
 		} else if (TextUtils.equals(action, CONNECTIVITY_CHANGE_ACTION)) {
-			ConnectivityManager manager = (ConnectivityManager) context
+			ConnectivityManager manager = (ConnectivityManager) mContext
 					.getSystemService(Context.CONNECTIVITY_SERVICE);
 			NetworkInfo mobileInfo = manager
 					.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
@@ -63,7 +76,7 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 			NetworkInfo activeInfo = manager.getActiveNetworkInfo();
 
 			ToastUtils.showShort(
-					context,
+					mContext,
 					"mobile:"
 							+ mobileInfo.isConnected()
 							+ "\n"

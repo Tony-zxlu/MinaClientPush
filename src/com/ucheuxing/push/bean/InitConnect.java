@@ -2,7 +2,7 @@ package com.ucheuxing.push.bean;
 
 import java.io.Serializable;
 
-public class NotifyConnect implements Serializable {
+public class InitConnect implements Serializable {
 
 	/**
 	 * 
