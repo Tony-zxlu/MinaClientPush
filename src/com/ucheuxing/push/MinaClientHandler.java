@@ -17,12 +17,8 @@ import com.ucheuxing.push.bean.NotifyConnect;
 import com.ucheuxing.push.receiver.UUPushBaseReceiver;
 import com.ucheuxing.push.util.GetPhoneStatec;
 import com.ucheuxing.push.util.LogUtil;
-<<<<<<< HEAD
-import com.ucheuxing.push.util.SignUtil;
-=======
 import com.ucheuxing.push.util.NetUtils;
->>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
-
+import com.ucheuxing.push.util.SignUtil;
 public class MinaClientHandler extends IoHandlerAdapter {
 
 	private static final String TAG = MinaClientHandler.class.getSimpleName();
@@ -93,11 +89,7 @@ public class MinaClientHandler extends IoHandlerAdapter {
 	}
 
 	private void sendLoginRequest(IoSession session, NotifyConnect notifyConnect) {
-<<<<<<< HEAD
 		SignUtil netUtils = new SignUtil(mContext);
-=======
-		NetUtils netUtils = new NetUtils(mContext);
->>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 		LoginRequest loginRequest = new LoginRequest("login",
 				netUtils.getSign(), GetPhoneStatec.getClientType(),
 				GetPhoneStatec.getVersionName(mContext),
