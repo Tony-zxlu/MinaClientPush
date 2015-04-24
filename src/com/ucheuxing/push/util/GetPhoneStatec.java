@@ -12,6 +12,10 @@ import android.telephony.TelephonyManager;
 
 @SuppressLint("DefaultLocale")
 public class GetPhoneStatec {
+<<<<<<< HEAD
+=======
+	private static final String PACKAGE_NAME = "com.lansejuli.ucheuxing";
+>>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 
 	/**
 	 * 获取版本信息
@@ -22,11 +26,19 @@ public class GetPhoneStatec {
 		String versionName = "";
 		try {
 			versionName = context.getPackageManager().getPackageInfo(
+<<<<<<< HEAD
 					context.getPackageName(), 0).versionName;
+=======
+					PACKAGE_NAME, 0).versionName;
+>>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 		} catch (NameNotFoundException e) {
 			e.printStackTrace();
 		}
 		return versionName;
+<<<<<<< HEAD
+=======
+
+>>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 	}
 
 	/**

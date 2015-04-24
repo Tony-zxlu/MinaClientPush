@@ -12,7 +12,10 @@ public class NotifyConnect implements Serializable {
 	public String msg;
 	public int code;
 	public String client_id;
+<<<<<<< HEAD
 	
+=======
+>>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 	@Override
 	public String toString() {
 		return "NotifyConnect [type=" + type + ", msg=" + msg + ", code="

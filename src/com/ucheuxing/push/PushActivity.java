@@ -26,7 +26,11 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.ucheuxing.push.util.LogUtil;
+<<<<<<< HEAD
 import com.ucheuxing.push.util.SignUtil;
+=======
+import com.ucheuxing.push.util.NetUtils;
+>>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 
 public class PushActivity extends Activity implements OnClickListener {
 
@@ -58,7 +62,11 @@ public class PushActivity extends Activity implements OnClickListener {
 		mSendBtn.setOnClickListener(this);
 		mJsonBtn.setOnClickListener(this);
 		
+<<<<<<< HEAD
 		String testSign = SignUtil.testSign();
+=======
+		String testSign = NetUtils.testSign();
+>>>>>>> 17ed83ee4905812d12cc9caaf19cbe20e9ae50ae
 		Log.d("sign", testSign);
 	}
 
