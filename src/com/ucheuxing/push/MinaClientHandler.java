@@ -51,6 +51,7 @@ public class MinaClientHandler extends IoHandlerAdapter {
 	@Override
 	public void messageReceived(IoSession session, Object message)
 			throws Exception {
+		log.d("============start=============="+(message == null ? "NULL":message.toString()));
 		if (message == null)
 			return;
 		if (!(message instanceof String))

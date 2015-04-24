@@ -11,19 +11,14 @@ import android.os.Parcelable;
  * @author Tony DateTime 2015-4-21 下午3:02:55
  * @version 1.0
  */
-public class PayNotify implements Serializable {
+public class PayNotify extends BaseBean {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	/**
-	 * 支付ok
-	 */
-	public static final int PAY_OK = 1;
 
-	public String type;
 	public String msg;
 	public int code;
 	public String uid;

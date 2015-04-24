@@ -56,6 +56,7 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 				break;
 				
 			case PING:
+				ToastUtils.showShort(mContext, "ping");
 				break;
 				
 			case PAY:

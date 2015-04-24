@@ -1,14 +1,12 @@
 package com.ucheuxing.push.bean;
 
-import java.io.Serializable;
 
-public class LoginRequest implements Serializable {
+public class LoginRequest extends BaseBean{
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	public String type;
 	public String sign;
 	public String ct;
 	public String v;
