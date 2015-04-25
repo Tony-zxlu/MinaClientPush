@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.FLASHLIGHT" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
         android:name="com.ucheuxing.push.UcheUxingApplication"
@@ -34,6 +35,12 @@
                 <action android:name="com.ucheuxing.action.push" />
             </intent-filter>
         </receiver>
+
+        <service android:name="com.ucheuxing.push.PushService" >
+            <intent-filter>
+                <action android:name="com.ucheuxing.push.PushService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

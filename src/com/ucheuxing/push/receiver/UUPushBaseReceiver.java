@@ -7,17 +7,17 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.text.TextUtils;
 
-import com.ucheuxing.push.MinaClientHandler.BusinessType;
+import com.ucheuxing.push.ReceiveDataHandler.BusinessType;
 import com.ucheuxing.push.bean.LoginResponse;
 import com.ucheuxing.push.bean.InitConnect;
-import com.ucheuxing.push.bean.PayNotify;
+import com.ucheuxing.push.bean.PayCodeNotify;
 import com.ucheuxing.push.util.ToastUtils;
-import static com.ucheuxing.push.MinaClientHandler.*;
+import static com.ucheuxing.push.ReceiveDataHandler.*;
 public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 
 	public static final String UCHEUXING_PUSH_ACTION = "com.ucheuxing.action.push";
-	public static final String CONNECTIVITY_CHANGE_ACTION = "android.net.conn.CONNECTIVITY_CHANGE";
 	
+	public static final String CONNECTIVITY_CHANGE_ACTION = "android.net.conn.CONNECTIVITY_CHANGE";
 	
 
 	/**
@@ -33,7 +33,7 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 	
 	public abstract void onConnectSuccess(Context mContext, InitConnect notifyConnect);
 	
-	public abstract void onPayNotify(Context mContext, PayNotify payNotify);
+	public abstract void onPayCodeNotify(Context mContext, PayCodeNotify payNotify);
 
 	@Override
 	public void onReceive(Context mContext, Intent intent) {
@@ -60,8 +60,9 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 				break;
 				
 			case PAY:
-				PayNotify payNotify = (PayNotify) intent.getSerializableExtra(DATA);
-				onPayNotify(mContext, payNotify);
+			case CODE:
+				PayCodeNotify payCodeNotify = (PayCodeNotify) intent.getSerializableExtra(DATA);
+				onPayCodeNotify(mContext, payCodeNotify);
 				break;
 
 			default:
@@ -89,4 +90,6 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 									.getType()));
 		}
 	}
+	
+	
 }

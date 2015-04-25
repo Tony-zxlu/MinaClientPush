@@ -2,10 +2,11 @@ package com.ucheuxing.push.receiver;
 
 import android.content.Context;
 
+import com.ucheuxing.push.ReceiveDataHandler.BusinessType;
 import com.ucheuxing.push.bean.BaseBean;
 import com.ucheuxing.push.bean.InitConnect;
 import com.ucheuxing.push.bean.LoginResponse;
-import com.ucheuxing.push.bean.PayNotify;
+import com.ucheuxing.push.bean.PayCodeNotify;
 import com.ucheuxing.push.util.NotifyManager;
 import com.ucheuxing.push.util.ToastUtils;
 import com.ucheuxing.push.util.Utils;
@@ -33,18 +34,22 @@ public class MyUUPushReceiver extends UUPushBaseReceiver {
 	}
 
 	@Override
-	public void onPayNotify(Context mContext, PayNotify payNotify) {
-		if (payNotify == null || payNotify.status == PayNotify.PAY_OK) {
-			// TOOD:去服务器请求最新的数据，付款成功的通知
+	public void onPayCodeNotify(Context mContext, PayCodeNotify payCodeNotify) {
+		if (payCodeNotify == null
+				|| payCodeNotify.status == PayCodeNotify.PAY_OK) {
+			BusinessType type = BusinessType.valueOf(payCodeNotify.type.toUpperCase());
+			String msg;
 			if (Utils.isInOurUserInterface(mContext)) {
-				NotifyManager.showPayDialog(mContext, "付款成功");
+				msg = (type == BusinessType.PAY) ? "付款成功" : "扫码成功";
+				NotifyManager.showPayDialog(mContext, msg);
 			} else {
 				ToastUtils.showShort(mContext, "当前界面没有处于我们app的交互界面，不应该暴力弹出窗口");
-				NotifyManager.showPayNotification(mContext,
-						"XX先生，您好，MM先生付款成功，可以放行了");
+				msg = (type == BusinessType.PAY) ? "XX先生，您好，MM先生付款成功，可以放行了"
+						: "扫码成功";
+				NotifyManager.showPayNotification(mContext, msg);
 			}
 		} else {
-			ToastUtils.showShort(mContext, payNotify.msg);
+			ToastUtils.showShort(mContext, payCodeNotify.msg);
 		}
 	}
 }

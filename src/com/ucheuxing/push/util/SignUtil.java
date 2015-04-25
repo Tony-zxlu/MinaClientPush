@@ -21,7 +21,7 @@ public class SignUtil {
 
 	public String getSign() {
 		List<String> list = new ArrayList<String>();
-		list.add(Contansts.SALT_FIGURE);
+		list.add(Constants.SALT_FIGURE);
 		list.add(GetPhoneStatec.getVersionName(context));
 		list.add(GetPhoneStatec.getClientType());
 		list.add(GetPhoneStatec.getTime());

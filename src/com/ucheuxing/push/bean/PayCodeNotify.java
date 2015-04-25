@@ -1,9 +1,5 @@
 package com.ucheuxing.push.bean;
 
-import java.io.Serializable;
-
-import android.os.Parcel;
-import android.os.Parcelable;
 
 /**
  * 付款详情的bean
@@ -11,7 +7,7 @@ import android.os.Parcelable;
  * @author Tony DateTime 2015-4-21 下午3:02:55
  * @version 1.0
  */
-public class PayNotify extends BaseBean {
+public class PayCodeNotify extends BaseBean {
 
 	/**
 	 * 
@@ -22,9 +18,9 @@ public class PayNotify extends BaseBean {
 	public String msg;
 	public int code;
 	public String uid;
-	public int status;// 付款成功
+	public int status;// 付款或者扫码成功
 
-	public PayNotify(String type, String msg, int code, String uid, int status) {
+	public PayCodeNotify(String type, String msg, int code, String uid, int status) {
 		super();
 		this.type = type;
 		this.msg = msg;

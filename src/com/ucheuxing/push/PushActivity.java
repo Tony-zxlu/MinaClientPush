@@ -1,31 +1,25 @@
 package com.ucheuxing.push;
 
-import java.net.InetSocketAddress;
-
-import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFuture;
 import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
-import org.apache.mina.transport.socket.nio.NioSocketConnector;
 
 import android.app.Activity;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
+import com.ucheuxing.push.util.Constants;
 import com.ucheuxing.push.util.LogUtil;
 import com.ucheuxing.push.util.NotifyManager;
-import com.ucheuxing.push.util.SignUtil;
+import com.ucheuxing.push.util.SharedPreferUtils;
+import com.ucheuxing.push.util.ToastUtils;
 
 public class PushActivity extends Activity implements OnClickListener {
 
@@ -38,6 +32,8 @@ public class PushActivity extends Activity implements OnClickListener {
 	private IoSession session;
 
 	private LogUtil log;
+
+	ServiceManager manager;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -55,24 +51,28 @@ public class PushActivity extends Activity implements OnClickListener {
 		mDisconnectBtn.setOnClickListener(this);
 		mSendBtn.setOnClickListener(this);
 
-		String testSign = SignUtil.testSign();
-		Log.d("sign", testSign);
+		manager = new ServiceManager(this);
+		manager.setNotificationIcon(R.drawable.ic_launcher);
 	}
 
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
 		case R.id.btnConnect:
-			new Thread(new Runnable() {
-
-				@Override
-				public void run() {
-					connectServer();
-				}
-			}).start();
+			hostname = mIP.getText().toString().trim();
+			String portStr = mPort.getText().toString().trim();
+			if (TextUtils.isEmpty(hostname) || TextUtils.isEmpty(portStr)) {
+				ToastUtils.showShort(this, "先配置好IP和端口");
+				return;
+			}
+			port = Integer.parseInt(portStr);
+			SharedPreferUtils.setString(this, Constants.SOCKET_HOST_NAME,
+					hostname);
+			SharedPreferUtils.setInt(this, Constants.SOCKET_PORT, port);
+			manager.startService();
 			break;
 		case R.id.btnDisconnect:
-			session.close(true);
+			manager.stopService();
 			break;
 		case R.id.btnSendMsg:
 			WriteFuture future = session.write(mInputMsg.getText().toString()
@@ -90,42 +90,39 @@ public class PushActivity extends Activity implements OnClickListener {
 		}
 	}
 
-	private void connectServer() {
-		// TODO Auto-generated method stub
+	// private void connectServer() {
+	// // TODO Auto-generated method stub
+	//
+	// // 建立connect对象
+	// NioSocketConnector connector = new NioSocketConnector();
+	// // 为connector设置handler
+	// connector.setHandler(new ReceiveDataHandler(PushActivity.this));
+	//
+	// connector.getFilterChain().addLast("codec",
+	// new ProtocolCodecFilter(new TextLineCodecFactory()));
+	//
+	// hostname = mIP.getText().toString().trim();
+	// String portStr = mPort.getText().toString().trim();
+	// if (TextUtils.isEmpty(hostname) || TextUtils.isEmpty(portStr)) {
+	// Toast.makeText(getApplicationContext(), "先配置好IP和端口", 0).show();
+	// return;
+	// }
+	// port = Integer.parseInt(portStr);
+	// ConnectFuture future = connector.connect(new InetSocketAddress(
+	// hostname, port));
+	// future.awaitUninterruptibly();
+	// session = future.getSession();
+	// // 设置心跳
+	// // Timer timer = new Timer();
+	// // timer.schedule(new TimerTask() {
+	// //
+	// // @Override
+	// // public void run() {
+	// // session.write("heart beat");
+	// // }
+	// // }, 0, 1000 * 5);
+	// }
 
-		// 建立connect对象
-		NioSocketConnector connector = new NioSocketConnector();
-		// 为connector设置handler
-		connector.setHandler(new MinaClientHandler(PushActivity.this));
-
-		connector.getFilterChain().addLast("codec",
-				new ProtocolCodecFilter(new TextLineCodecFactory()));
-
-		hostname = mIP.getText().toString().trim();
-		String portStr = mPort.getText().toString().trim();
-		if (TextUtils.isEmpty(hostname) || TextUtils.isEmpty(portStr)) {
-			Toast.makeText(getApplicationContext(), "先配置好IP和端口", 0).show();
-			return;
-		}
-		port = Integer.parseInt(portStr);
-		ConnectFuture future = connector.connect(new InetSocketAddress(
-				hostname, port));
-		future.awaitUninterruptibly();
-		session = future.getSession();
-		// 设置心跳
-		// Timer timer = new Timer();
-		// timer.schedule(new TimerTask() {
-		//
-		// @Override
-		// public void run() {
-		// session.write("heart beat");
-		// }
-		// }, 0, 1000 * 5);
-	}
-
-	public void testDialog(View view) {
-		NotifyManager.showPayDialog(this, "付款成功");
-	}
 
 	public void testNotification(View view) {
 		Uri uri = RingtoneManager.getActualDefaultRingtoneUri(this,

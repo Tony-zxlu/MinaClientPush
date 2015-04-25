@@ -1,5 +1,7 @@
 <resources>
 
     <string name="app_name">UcheUxingPush</string>
+    <string name="pay_ok">支付成功</string>
+    <string name="scan_code_ok">扫码成功</string>
 
 </resources>
