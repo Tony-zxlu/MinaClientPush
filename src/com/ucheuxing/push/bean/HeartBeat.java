@@ -1,10 +1,10 @@
 package com.ucheuxing.push.bean;
 
-public class HeartBeatFeedBack {
+public class HeartBeat {
 
 	public String type;
 
-	public HeartBeatFeedBack(String type) {
+	public HeartBeat(String type) {
 		super();
 		this.type = type;
 	}

@@ -30,7 +30,6 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 		Log.d(TAG, "action=" + action);
 		ConnectivityManager connectivityManager = (ConnectivityManager) context
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
-
 		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 
 		if (networkInfo != null) {

@@ -2,7 +2,7 @@ package com.ucheuxing.push.receiver;
 
 import android.content.Context;
 
-import com.ucheuxing.push.ReceiveDataHandler.BusinessType;
+import com.ucheuxing.push.PushManager.BusinessType;
 import com.ucheuxing.push.bean.BaseBean;
 import com.ucheuxing.push.bean.InitConnect;
 import com.ucheuxing.push.bean.LoginResponse;

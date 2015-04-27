@@ -26,8 +26,10 @@ public class PushService extends Service {
 	private ConnectivityReceiver connectivityReceiver;
 	private PhoneStateListener phoneStateListener;
 	private TelephonyManager telephonyManager;
-	private TaskSubmitter taskSubmitter;
+	private TaskSubmitter mTaskSubmitter;
 
+	private TaskTracker mTaskTracker;
+	
 	private PushManager pushManager;
 
 	public PushService() {
@@ -35,7 +37,8 @@ public class PushService extends Service {
 		connectivityReceiver = new ConnectivityReceiver(this);
 		phoneStateListener = new PhoneStateChangeListener(this);
 		executorService = Executors.newSingleThreadExecutor();
-		taskSubmitter = new TaskSubmitter(this);
+		mTaskSubmitter = new TaskSubmitter(this);
+		mTaskTracker = new TaskTracker(this);
 	}
 
 	@Override
@@ -86,7 +89,48 @@ public class PushService extends Service {
 			}
 			return result;
 		}
+	}
 
+	/**
+     * Class for monitoring the running task count.
+     */
+    public class TaskTracker {
+
+        final PushService mPushService;
+
+        public int count;
+
+        public TaskTracker(PushService mPushService) {
+            this.mPushService = mPushService;
+            this.count = 0;
+        }
+
+        public void increase() {
+            synchronized (mPushService.getTaskTracker()) {
+            	mPushService.getTaskTracker().count++;
+                Log.d(TAG, "Incremented task count to " + count);
+            }
+        }
+
+        public void decrease() {
+            synchronized (mPushService.getTaskTracker()) {
+            	mPushService.getTaskTracker().count--;
+                Log.d(TAG, "Decremented task count to " + count);
+            }
+        }
+        
+        public void clear() {
+            synchronized (mPushService.getTaskTracker()) {
+            	mPushService.getTaskTracker().count = 0;
+                Log.d(TAG, "Decremented task count to " + count);
+            }
+        }
+
+    }
+	
+    
+	public TaskTracker getTaskTracker() {
+		return mTaskTracker;
 	}
 
 	public ExecutorService getExecutorService() {
@@ -94,7 +138,7 @@ public class PushService extends Service {
 	}
 
 	public TaskSubmitter getTaskSubmitter() {
-		return taskSubmitter;
+		return mTaskSubmitter;
 	}
 
 	public PushManager getPushManager() {
@@ -120,17 +164,15 @@ public class PushService extends Service {
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		Log.d(TAG, " onDestroy ");
 		unregisterConnectivityReceiver();
 		if (pushManager != null) {
 			pushManager.disConnect();
-			pushManager = null;
 		}
 
 		if (executorService != null) {
 			executorService.shutdownNow();
-			executorService = null;
 		}
-		taskSubmitter = null;
 		System.gc();
 	}
 
@@ -138,17 +180,17 @@ public class PushService extends Service {
 		Log.d(TAG, "registerConnectivityReceiver()...");
 		telephonyManager.listen(phoneStateListener,
 				PhoneStateListener.LISTEN_DATA_CONNECTION_STATE);
-//		IntentFilter filter = new IntentFilter();
-//		// filter.addAction(android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION);
-//		filter.addAction(android.net.ConnectivityManager.CONNECTIVITY_ACTION);
-//		registerReceiver(connectivityReceiver, filter);
+		IntentFilter filter = new IntentFilter();
+		// filter.addAction(android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION);
+		filter.addAction(android.net.ConnectivityManager.CONNECTIVITY_ACTION);
+		registerReceiver(connectivityReceiver, filter);
 	}
 
 	private void unregisterConnectivityReceiver() {
 		Log.d(TAG, "unregisterConnectivityReceiver()...");
 		telephonyManager.listen(phoneStateListener,
 				PhoneStateListener.LISTEN_NONE);
-//		unregisterReceiver(connectivityReceiver);
+		unregisterReceiver(connectivityReceiver);
 	}
 
 }

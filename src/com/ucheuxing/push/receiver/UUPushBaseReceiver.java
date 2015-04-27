@@ -7,17 +7,19 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.text.TextUtils;
 
-import com.ucheuxing.push.ReceiveDataHandler.BusinessType;
-import com.ucheuxing.push.bean.LoginResponse;
+import com.ucheuxing.push.PushManager.BusinessType;
 import com.ucheuxing.push.bean.InitConnect;
+import com.ucheuxing.push.bean.LoginResponse;
 import com.ucheuxing.push.bean.PayCodeNotify;
 import com.ucheuxing.push.util.ToastUtils;
-import static com.ucheuxing.push.ReceiveDataHandler.*;
+import static com.ucheuxing.push.PushManager.*;
 public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 
 	public static final String UCHEUXING_PUSH_ACTION = "com.ucheuxing.action.push";
 	
 	public static final String CONNECTIVITY_CHANGE_ACTION = "android.net.conn.CONNECTIVITY_CHANGE";
+
+
 	
 
 	/**

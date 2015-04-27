@@ -8,6 +8,8 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -59,5 +61,15 @@ public class Utils {
 			}
 		}
 		return isRunning;
+	}
+
+	/**
+	 * 网络是否连接
+	 */
+	public boolean isNetworkConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+		return networkInfo != null && networkInfo.isConnected();
 	}
 }
