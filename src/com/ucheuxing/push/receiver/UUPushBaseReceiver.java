@@ -19,9 +19,6 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 	
 	public static final String CONNECTIVITY_CHANGE_ACTION = "android.net.conn.CONNECTIVITY_CHANGE";
 
-
-	
-
 	/**
 	 * loging success
 	 * 
@@ -44,7 +41,6 @@ public abstract class UUPushBaseReceiver extends BroadcastReceiver {
 																// action
 			BusinessType type = (BusinessType) intent
 					.getSerializableExtra(TYPE);
-
 			switch (type) {
 			case LOGIN:
 				LoginResponse loginResponse = (LoginResponse) intent

@@ -1,22 +1,18 @@
 package com.ucheuxing.push;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
+import org.apache.mina.core.RuntimeIoException;
+import org.apache.mina.core.filterchain.IoFilterAdapter;
 import org.apache.mina.core.future.ConnectFuture;
-import org.apache.mina.core.future.IoFuture;
-import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
-import org.apache.mina.filter.keepalive.KeepAliveFilter;
-import org.apache.mina.filter.keepalive.KeepAliveRequestTimeoutHandler;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,8 +23,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
-import com.ucheuxing.push.PushService.TaskSubmitter;
-import com.ucheuxing.push.PushService.TaskTracker;
 import com.ucheuxing.push.bean.BaseBean;
 import com.ucheuxing.push.bean.HeartBeat;
 import com.ucheuxing.push.bean.InitConnect;
@@ -37,10 +31,10 @@ import com.ucheuxing.push.bean.LoginResponse;
 import com.ucheuxing.push.bean.PayCodeNotify;
 import com.ucheuxing.push.receiver.UUPushBaseReceiver;
 import com.ucheuxing.push.util.Constants;
-import com.ucheuxing.push.util.GetPhoneStatec;
-import com.ucheuxing.push.util.LogUtil;
 import com.ucheuxing.push.util.SharedPreferUtils;
 import com.ucheuxing.push.util.SignUtil;
+import com.ucheuxing.push.util.ToastUtils;
+import com.ucheuxing.push.util.Utils;
 
 /**
  * 
@@ -55,179 +49,162 @@ public class PushManager {
 	private NioSocketConnector connector;
 	private IoSession ioSession;
 	private ReceiveDataHandler receiveDataHandler;
-	private TaskSubmitter taskSubmitter;
-	private TaskTracker taskTracker;
-	private List<Runnable> taskList;
-	private boolean running;
-	private boolean isSessionOpen;
-	public boolean isAuthenticated = false;
-	private Future<?> futureTask;
 	private static String heartBeatJson;
 	private static String heartBeatFeedBackJson;
 	private Gson gson;
-	private ReconnectionThread reconnection;
-
+	private int connectTime, reConnectTime;
 	public PushManager(PushService pushService) {
 		super();
 		this.pushService = pushService;
 		gson = new Gson();
-		taskSubmitter = pushService.getTaskSubmitter();
 		receiveDataHandler = new ReceiveDataHandler(pushService);
-		taskTracker = pushService.getTaskTracker();
-		taskList = new ArrayList<Runnable>();
-		reconnection = new ReconnectionThread(this);
 		heartBeatJson = gson.toJson(new HeartBeat("ping"));
 		heartBeatFeedBackJson = gson.toJson(new HeartBeat("pong"));
 		Log.d(TAG, " heartBeatJson : " + heartBeatJson
 				+ " heartBeatFeedBackJson : " + heartBeatFeedBackJson);
 	}
 
-	public void connect() {
-		submitConnectTask();
+	
+	
+	public void connect(){
+		doConnect();
 	}
-
-	private void submitConnectTask() {
-		addTask(new ConnectTask());
+	
+	
+	public boolean sessionIsConnected() {
+		return (ioSession != null) && ioSession.isConnected();
 	}
+	private void doConnect() {
+		Log.i(TAG, "exeConnect ");
+		new Thread(new Runnable() {
 
-	public void startReconnectionThread() {
-		synchronized (PushManager.class) {
-			if (!reconnection.isAlive()) {
-				reconnection.setName("Push Reconnection Thread");
-				reconnection.start();
-			}
-		}
-	}
+			@Override
+			public void run() {
+				Log.i(TAG, "建立connect对象 ");
+				// 1.建立connect对象
+				connector = new NioSocketConnector();
+				// 2.为connector设置handler
+				connector.setHandler(receiveDataHandler);
+				// 3.为connector设置filter
+				connector.getFilterChain().addLast("codec",
+						new ProtocolCodecFilter(new TextLineCodecFactory()));
 
-	public void startNewReconnectionThread() {
-		synchronized (PushManager.class) {
-			Log.d(TAG, "restart new reconnectionThread");
-			reconnection = new ReconnectionThread(this);
-			reconnection.setName("Push Reconnection Thread");
-			reconnection.start();
-		}
-	}
+				connector.getFilterChain().addFirst("reconnection",
+						new IoFilterAdapter() {
 
-	private void addTask(Runnable runnable) {
-		Log.d(TAG, "addTask(runnable)...");
-		taskTracker.increase();
-		synchronized (taskList) {
-			if (taskList.isEmpty() && !running) {
-				running = true;
-				futureTask = taskSubmitter.submit(runnable);
-				if (futureTask == null) {
-					taskTracker.decrease();
+							@Override
+							public void sessionClosed(NextFilter nextFilter,
+									IoSession session) throws Exception {
+								reConnection();
+							}
+
+						});
+				// connector.getSessionConfig().setIdleTime(
+				// IdleStatus.WRITER_IDLE, 20);
+				connector.setConnectTimeoutMillis(5000);
+
+				String host = SharedPreferUtils.getString(pushService, Constants.SOCKET_HOST_NAME, "");
+				int port = SharedPreferUtils.getInt(pushService, Constants.SOCKET_PORT, -1);
+				if (TextUtils.isEmpty(host) || port == -1) {
+					ToastUtils.showShort(pushService, "请配置好服务IP和端口！");
+					return;
 				}
-			} else {
-				taskList.add(runnable);
-			}
-		}
-		Log.d(TAG, "addTask(runnable)... done");
-	}
-
-	/**
-	 * A runnable task to connect the server.
-	 */
-	private class ConnectTask implements Runnable {
-
-		final PushManager pushManager;
-
-		private ConnectTask() {
-			this.pushManager = PushManager.this;
-		}
-
-		public void run() {
-			Log.i(TAG, "ConnectTask.run()...");
-
-			if (!pushManager.isActive()) {
-				try {
-					isAuthenticated = false;
-					Log.d(TAG, " bulid socket connector ");
-					// 1.建立connect对象
-					connector = new NioSocketConnector();
-					// 2.为connector设置handler
-					connector.setHandler(receiveDataHandler);
-					// 3.为connector设置filter
-					connector.getFilterChain()
-							.addLast(
-									"codec",
-									new ProtocolCodecFilter(
-											new TextLineCodecFactory()));
-					connector.setConnectTimeoutMillis(5000);
-					String address = SharedPreferUtils.getString(pushService,
-							Constants.SOCKET_HOST_NAME, "");
-					int port = SharedPreferUtils.getInt(pushService,
-							Constants.SOCKET_PORT, -1);
-					Log.d(TAG, " address : " + address.toString() + " port :"
-							+ port);
-					if (!TextUtils.isEmpty(address) && port != -1) {
-						// 4.连接socket
-						ConnectFuture future = connector
-								.connect(new InetSocketAddress(address, port));
+				InetSocketAddress inetSocketAddress = new InetSocketAddress(
+						host, port);
+				connector.setDefaultRemoteAddress(inetSocketAddress);
+				connectTime = 0;
+				for (;;) {
+					try {
+						ConnectFuture future = connector.connect();
+						// 等待连接创建成功
 						future.awaitUninterruptibly();
+						// 获取会话
 						ioSession = future.getSession();
 						Log.d(TAG,
-								"connect successfully "
-										+ (ioSession == null ? "NULL"
-												: ioSession.isConnected()));
-						clearTask();
-					} else {
-						runTask();
+								"连接服务端"
+										+ host
+										+ ":"
+										+ port
+										+ "[成功]"
+										+ ",,时间:"
+										+ new SimpleDateFormat(
+												"yyyy-MM-dd HH:mm:ss")
+												.format(new Date()));
+						break;
+					} catch (RuntimeIoException e) {
+						Log.d(TAG,
+								"连接服务端"
+										+ host
+										+ ":"
+										+ port
+										+ "失败"
+										+ ",,时间:"
+										+ new SimpleDateFormat(
+												"yyyy-MM-dd HH:mm:ss")
+												.format(new Date())
+										+ ", 连接MSG异常,请检查MSG端口、IP是否正确,MSG服务是否启动,异常内容:"
+										+ e.getMessage(), e);
+						try {
+							int waiting = waiting(connectTime++);
+							Log.d(TAG, " reTry to connect server in " + waiting
+									+ " s " +" current connectTime : "+connectTime);
+							Thread.sleep(1000 * waiting);
+						} catch (InterruptedException e1) {
+							e1.printStackTrace();
+						}// 连接失败后,重连10次,间隔30s
 					}
-				} catch (Exception e) {
-					Log.d(TAG, " connect failed " + e.getMessage());
-					startReconnectionThread();
-					runTask();
 				}
-			} else {
-				clearTask();
+			}
+		}).start();
+	}
+
+
+	// //////////////////////////
+
+	private void reConnection() {
+		reConnectTime = 0;
+		for (;;) {
+			try {
+				int waiting = waiting(reConnectTime++);
+				Log.d(TAG, " reConnect server in " + waiting
+						+ " s  , current reConnectTime : " + reConnectTime);
+				Thread.sleep(1000 * waiting);
+				if (!Utils.isNetworkConnected(pushService)) {
+					Log.d(TAG, "reConnection 无网络。。。。 退出");
+					break;
+				}
+
+				if (sessionIsConnected()) {
+					Log.d(TAG, "已经登录。。。。 退出");
+					break;
+				}
+
+				if (connector != null && connector.isDisposed()) {
+					Log.d(TAG, "connector已经销毁了。。。。 退出");
+					break;
+				}
+				ConnectFuture future = connector.connect();
+				future.awaitUninterruptibly();
+				ioSession = future.getSession();
+				if (ioSession.isConnected()) {
+					Log.d(TAG, "断线重连["
+							+ connector.getDefaultRemoteAddress().getHostName()
+							+ ":"
+							+ connector.getDefaultRemoteAddress().getPort()
+							+ "]成功");
+					break;
+				} else {
+					Log.d(TAG, "断线重连失败");
+				}
+
+			} catch (Exception e) {
+				// e.printStackTrace();
+				Log.d(TAG, "重连服务器登录失败 :" + e.getMessage());
 			}
 		}
 	}
-
-	public void runTask() {
-		Log.d(TAG, "runTask()...");
-		synchronized (taskList) {
-			running = false;
-			futureTask = null;
-			if (!taskList.isEmpty()) {
-				Runnable runnable = (Runnable) taskList.get(0);
-				taskList.remove(0);
-				running = true;
-				futureTask = taskSubmitter.submit(runnable);
-				if (futureTask == null) {
-					taskTracker.decrease();
-				}
-			}
-		}
-		taskTracker.decrease();
-		Log.d(TAG, "runTask()...done");
-	}
-
-	private void clearTask() {
-		Log.d(TAG, "clearTask()...");
-		synchronized (taskList) {
-			taskList.clear();
-			taskTracker.clear();
-		}
-	}
-
-	/**
-	 * this connector is active or not
-	 */
-	public boolean isActive() {
-		return connector != null && connector.isActive() && ioSession != null
-				&& ioSession.isConnected();
-	}
-
-	public boolean isSessoinOpen() {
-		return isSessionOpen;
-	}
-
-	public boolean isAuthenticated() {
-		return isActive() && isAuthenticated;
-	}
-
+		// ////////////////////////////////////////////////////////////////////
+	
 	public void disConnect() {
 		if (ioSession != null && ioSession.isConnected()) {
 			ioSession.close(false);
@@ -235,13 +212,24 @@ public class PushManager {
 		if (connector != null && !connector.isDisposed()) {
 			connector.dispose();
 		}
-		running = false;
-		clearTask();
 	}
 
-	public List<Runnable> getTaskList() {
-		return taskList;
-	}
+	// ////////////////////////////////////////////////////////////////////
+		/**
+		 * According to the retryTime set the waiting time
+		 * 
+		 * @param retryTime
+		 * @return
+		 */
+		private int waiting(int retryTime) {
+			if (retryTime > 20) {
+				return 600;
+			}
+			if (retryTime > 13) {
+				return 300;
+			}
+			return retryTime <= 7 ? 10 : 60;
+		}
 
 	// ///////////////////////////////////////////////////////////
 	public static final String TYPE = "type";
@@ -297,7 +285,6 @@ public class PushManager {
 						LoginResponse.class);
 				intent.putExtra(DATA, loginResponse);
 				if (loginResponse.code == BaseBean.CODE_OK) {
-					isAuthenticated = true;
 					Log.d(TAG, " login success ");
 				}
 				break;
@@ -322,27 +309,6 @@ public class PushManager {
 			Log.d(TAG, "messageReceived : " + jsonStr.toString());
 		}
 
-		/**
-		 * 
-		 * @param session
-		 */
-		private void startHeartBeatThread(final IoSession session) {
-			new Thread(new Runnable() {
-
-				@Override
-				public void run() {
-					while (session != null && session.isConnected()) {
-						try {
-							session.write(heartBeatJson);
-							TimeUnit.SECONDS
-									.sleep(Constants.HEART_BEAT_INTERVAL);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			}).start();
-		}
 
 		//
 		private void sendPayFeedBack(IoSession session,
@@ -359,8 +325,8 @@ public class PushManager {
 		private void sendLoginRequest(IoSession session, InitConnect initConnect) {
 			SignUtil signUtil = new SignUtil(pushService);
 			LoginRequest loginRequest = new LoginRequest("login",
-					signUtil.getSign(), GetPhoneStatec.getClientType(),
-					GetPhoneStatec.getVersionName(pushService),
+					signUtil.getSign(), Utils.getClientType(),
+					Utils.getVersionName(pushService),
 					initConnect.client_id, "userid01");
 			String logingRequestStr = gson.toJson(loginRequest);
 			if (session != null && session.isConnected()) {
@@ -377,33 +343,26 @@ public class PushManager {
 		@Override
 		public void sessionClosed(IoSession session) throws Exception {
 			Log.d(TAG, "sessionClosed");
-			isSessionOpen = false;
-			isAuthenticated = false;
-			disConnect();
-			runTask();
-			startNewReconnectionThread();
 		}
 
 		@Override
 		public void sessionCreated(IoSession session) throws Exception {
-			Log.d(TAG, "sessionCreated");
+			Log.d(TAG, "sessionCreated AND setIdleTime : "+Constants.HEART_BEAT_INTERVAL);
+			session.getConfig().setIdleTime(IdleStatus.WRITER_IDLE, Constants.HEART_BEAT_INTERVAL);
 		}
 
 		@Override
 		public void sessionIdle(IoSession session, IdleStatus status)
 				throws Exception {
-			Log.d(TAG, "sessionIdle");
+			Log.d(TAG, "sessionIdle and send ping messgae ");
+			if (session != null) {
+				session.write(heartBeatJson);
+			}
 		}
 
 		@Override
 		public void sessionOpened(IoSession session) throws Exception {
-			Log.d(TAG,
-					"sessionOpened and start heart beat session.isConnected() :"
-							+ (session == null ? " NUll" : session
-									.isConnected()));
-			isSessionOpen = true;
-			startHeartBeatThread(session);
-			clearTask();
+			Log.d(TAG, "sessionOpened sessionId ： "+session.getId());
 		}
 
 		// /////////////////////////////////////////////

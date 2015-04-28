@@ -28,7 +28,7 @@ public class PhoneStateChangeListener extends PhoneStateListener {
 		Log.d(TAG, "Data Connection State = " + getState(state));
 
 		if (state == TelephonyManager.DATA_CONNECTED) {
-			pushService.connect();
+//			pushService.connect();
 		}
 	}
 

@@ -16,8 +16,6 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import com.ucheuxing.push.util.Constants;
-import com.ucheuxing.push.util.LogUtil;
-import com.ucheuxing.push.util.NotifyManager;
 import com.ucheuxing.push.util.SharedPreferUtils;
 import com.ucheuxing.push.util.ToastUtils;
 
@@ -30,16 +28,12 @@ public class PushActivity extends Activity implements OnClickListener {
 	private String hostname;
 	private int port;
 	private IoSession session;
-
-	private LogUtil log;
-
 	ServiceManager manager;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		log = new LogUtil(TAG);
 		mConnectBtn = (Button) findViewById(R.id.btnConnect);
 		mDisconnectBtn = (Button) findViewById(R.id.btnDisconnect);
 		mSendBtn = (Button) findViewById(R.id.btnSendMsg);
@@ -89,40 +83,6 @@ public class PushActivity extends Activity implements OnClickListener {
 			break;
 		}
 	}
-
-	// private void connectServer() {
-	// // TODO Auto-generated method stub
-	//
-	// // 建立connect对象
-	// NioSocketConnector connector = new NioSocketConnector();
-	// // 为connector设置handler
-	// connector.setHandler(new ReceiveDataHandler(PushActivity.this));
-	//
-	// connector.getFilterChain().addLast("codec",
-	// new ProtocolCodecFilter(new TextLineCodecFactory()));
-	//
-	// hostname = mIP.getText().toString().trim();
-	// String portStr = mPort.getText().toString().trim();
-	// if (TextUtils.isEmpty(hostname) || TextUtils.isEmpty(portStr)) {
-	// Toast.makeText(getApplicationContext(), "先配置好IP和端口", 0).show();
-	// return;
-	// }
-	// port = Integer.parseInt(portStr);
-	// ConnectFuture future = connector.connect(new InetSocketAddress(
-	// hostname, port));
-	// future.awaitUninterruptibly();
-	// session = future.getSession();
-	// // 设置心跳
-	// // Timer timer = new Timer();
-	// // timer.schedule(new TimerTask() {
-	// //
-	// // @Override
-	// // public void run() {
-	// // session.write("heart beat");
-	// // }
-	// // }, 0, 1000 * 5);
-	// }
-
 
 	public void testNotification(View view) {
 		Uri uri = RingtoneManager.getActualDefaultRingtoneUri(this,

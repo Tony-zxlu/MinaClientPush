@@ -22,10 +22,10 @@ public class SignUtil {
 	public String getSign() {
 		List<String> list = new ArrayList<String>();
 		list.add(Constants.SALT_FIGURE);
-		list.add(GetPhoneStatec.getVersionName(context));
-		list.add(GetPhoneStatec.getClientType());
-		list.add(GetPhoneStatec.getTime());
-		return GetPhoneStatec.getMd5(list);
+		list.add(Utils.getVersionName(context));
+		list.add(Utils.getClientType());
+		list.add(Utils.getTime());
+		return Utils.getMd5(list);
 	}
 
 	public static String testSign() {
@@ -34,7 +34,7 @@ public class SignUtil {
 		list.add("xiaomi");
 		list.add("201504");
 		list.add("ucheu13@xing");
-		return GetPhoneStatec.getMd5(list);
+		return Utils.getMd5(list);
 	}
 
 }

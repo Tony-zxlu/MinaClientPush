@@ -19,6 +19,8 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 			.getSimpleName();
 	private PushService pushService;
 
+	private boolean isFirst = true;
+	
 	public ConnectivityReceiver(PushService pushService) {
 		this.pushService = pushService;
 	}
@@ -37,11 +39,20 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 			Log.d(TAG, "Network State = " + networkInfo.getState());
 			if (networkInfo.isConnected()) {
 				Log.i(TAG, "Network connected");
+				if (isFirst) {
+					isFirst = false;
+					return;
+				}
+				try {
+					Thread.sleep(3000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				pushService.disConnect();
 				pushService.connect();
 			}
 		} else {
 			Log.e(TAG, "Network unavailable");
-			pushService.disConnect();
 		}
 	}
 

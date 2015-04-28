@@ -5,6 +5,7 @@ import android.content.Intent;
 
 import com.ucheuxing.push.util.Constants;
 import com.ucheuxing.push.util.SharedPreferUtils;
+import com.ucheuxing.push.util.Utils;
 
 public class ServiceManager {
 
@@ -27,6 +28,9 @@ public class ServiceManager {
 
 			@Override
 			public void run() {
+				if (Utils.isServiceRunning(context, PushService.class.getName())) {
+					context.stopService(intent);
+				}
 				context.startService(intent);
 			}
 		}).start();
