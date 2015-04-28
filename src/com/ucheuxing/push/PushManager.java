@@ -53,6 +53,8 @@ public class PushManager {
 	private static String heartBeatFeedBackJson;
 	private Gson gson;
 	private int connectTime, reConnectTime;
+	private boolean isConnecting = false;
+	
 	public PushManager(PushService pushService) {
 		super();
 		this.pushService = pushService;
@@ -64,100 +66,124 @@ public class PushManager {
 				+ " heartBeatFeedBackJson : " + heartBeatFeedBackJson);
 	}
 
-	
-	
-	public void connect(){
+	public void connect() {
 		doConnect();
 	}
-	
-	
+
 	public boolean sessionIsConnected() {
 		return (ioSession != null) && ioSession.isConnected();
 	}
+
 	private void doConnect() {
-		Log.i(TAG, "exeConnect ");
+		if (isConnecting) {
+			Log.i(TAG, " doConnect isConnecting exit ");
+			return;
+		}
+
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
-				Log.i(TAG, "建立connect对象 ");
-				// 1.建立connect对象
-				connector = new NioSocketConnector();
-				// 2.为connector设置handler
-				connector.setHandler(receiveDataHandler);
-				// 3.为connector设置filter
-				connector.getFilterChain().addLast("codec",
-						new ProtocolCodecFilter(new TextLineCodecFactory()));
+				try {
+					isConnecting = true;
+					Log.i(TAG, "建立connect对象 ");
+					// 1.建立connect对象
+					connector = new NioSocketConnector();
+					// 2.为connector设置handler
+					connector.setHandler(receiveDataHandler);
+					// 3.为connector设置filter
+					connector.getFilterChain().addLast("codec",
+							new ProtocolCodecFilter(new TextLineCodecFactory()));
 
-				connector.getFilterChain().addFirst("reconnection",
-						new IoFilterAdapter() {
+					connector.getFilterChain().addFirst("reconnection",
+							new IoFilterAdapter() {
 
-							@Override
-							public void sessionClosed(NextFilter nextFilter,
-									IoSession session) throws Exception {
-								reConnection();
-							}
+								@Override
+								public void sessionClosed(NextFilter nextFilter,
+										IoSession session) throws Exception {
+									reConnection();
+								}
 
-						});
-				// connector.getSessionConfig().setIdleTime(
-				// IdleStatus.WRITER_IDLE, 20);
-				connector.setConnectTimeoutMillis(5000);
+							});
+					// connector.getSessionConfig().setIdleTime(
+					// IdleStatus.WRITER_IDLE, 20);
+					connector.setConnectTimeoutMillis(5000);
 
-				String host = SharedPreferUtils.getString(pushService, Constants.SOCKET_HOST_NAME, "");
-				int port = SharedPreferUtils.getInt(pushService, Constants.SOCKET_PORT, -1);
-				if (TextUtils.isEmpty(host) || port == -1) {
-					ToastUtils.showShort(pushService, "请配置好服务IP和端口！");
-					return;
-				}
-				InetSocketAddress inetSocketAddress = new InetSocketAddress(
-						host, port);
-				connector.setDefaultRemoteAddress(inetSocketAddress);
-				connectTime = 0;
-				for (;;) {
-					try {
-						ConnectFuture future = connector.connect();
-						// 等待连接创建成功
-						future.awaitUninterruptibly();
-						// 获取会话
-						ioSession = future.getSession();
-						Log.d(TAG,
-								"连接服务端"
-										+ host
-										+ ":"
-										+ port
-										+ "[成功]"
-										+ ",,时间:"
-										+ new SimpleDateFormat(
-												"yyyy-MM-dd HH:mm:ss")
-												.format(new Date()));
-						break;
-					} catch (RuntimeIoException e) {
-						Log.d(TAG,
-								"连接服务端"
-										+ host
-										+ ":"
-										+ port
-										+ "失败"
-										+ ",,时间:"
-										+ new SimpleDateFormat(
-												"yyyy-MM-dd HH:mm:ss")
-												.format(new Date())
-										+ ", 连接MSG异常,请检查MSG端口、IP是否正确,MSG服务是否启动,异常内容:"
-										+ e.getMessage(), e);
-						try {
-							int waiting = waiting(connectTime++);
-							Log.d(TAG, " reTry to connect server in " + waiting
-									+ " s " +" current connectTime : "+connectTime);
-							Thread.sleep(1000 * waiting);
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}// 连接失败后,重连10次,间隔30s
+					String host = SharedPreferUtils.getString(pushService,
+							Constants.SOCKET_HOST_NAME, "");
+					int port = SharedPreferUtils.getInt(pushService,
+							Constants.SOCKET_PORT, -1);
+					if (TextUtils.isEmpty(host) || port == -1) {
+						ToastUtils.showShort(pushService, "请配置好服务IP和端口！");
+						return;
 					}
+					InetSocketAddress inetSocketAddress = new InetSocketAddress(
+							host, port);
+					connector.setDefaultRemoteAddress(inetSocketAddress);
+					connectTime = 0;
+					for (;;) {
+						try {
+							
+							if (sessionIsConnected()) {
+								Log.d(TAG, "连接服务器---已经登录。。。。 退出");
+								break;
+							}
+							
+							if (!Utils.isNetworkConnected(pushService)) {
+								Log.d(TAG, "连接服务器---重新连接服器， 无网络。。。。 退出");
+								return;
+							}
+							
+							if (connector != null && connector.isDisposed()) {
+								Log.d(TAG, "连接服务器---connector已经销毁了。。。。 退出");
+								break;
+							}
+							ConnectFuture future = connector.connect();
+							// 等待连接创建成功
+							future.awaitUninterruptibly();
+							// 获取会话
+							ioSession = future.getSession();
+							Log.d(TAG,
+									"连接服务端"
+											+ host
+											+ ":"
+											+ port
+											+ "[成功]"
+											+ ",,时间:"
+											+ new SimpleDateFormat(
+													"yyyy-MM-dd HH:mm:ss")
+													.format(new Date()));
+							break;
+						} catch (RuntimeIoException e) {
+							Log.d(TAG,
+									"连接服务端"
+											+ host
+											+ ":"
+											+ port
+											+ "失败"
+											+ ",,时间:"
+											+ new SimpleDateFormat(
+													"yyyy-MM-dd HH:mm:ss")
+													.format(new Date())
+											+ ", 连接MSG异常,请检查MSG端口、IP是否正确,MSG服务是否启动,异常内容:"
+											+ e.getMessage(), e);
+							try {
+								int waiting = waiting(connectTime++);
+								Log.d(TAG, " reTry to connect server in " + waiting
+										+ " s " + " current connectTime : "
+										+ connectTime);
+								Thread.sleep(1000 * waiting);
+							} catch (InterruptedException e1) {
+								e1.printStackTrace();
+							}// 连接失败后,重连10次,间隔30s
+						}
+					}
+				} finally {
+					isConnecting = false;
 				}
 			}
 		}).start();
 	}
-
 
 	// //////////////////////////
 
@@ -203,8 +229,9 @@ public class PushManager {
 			}
 		}
 	}
-		// ////////////////////////////////////////////////////////////////////
-	
+
+	// ////////////////////////////////////////////////////////////////////
+
 	public void disConnect() {
 		if (ioSession != null && ioSession.isConnected()) {
 			ioSession.close(false);
@@ -215,21 +242,21 @@ public class PushManager {
 	}
 
 	// ////////////////////////////////////////////////////////////////////
-		/**
-		 * According to the retryTime set the waiting time
-		 * 
-		 * @param retryTime
-		 * @return
-		 */
-		private int waiting(int retryTime) {
-			if (retryTime > 20) {
-				return 600;
-			}
-			if (retryTime > 13) {
-				return 300;
-			}
-			return retryTime <= 7 ? 10 : 60;
+	/**
+	 * According to the retryTime set the waiting time
+	 * 
+	 * @param retryTime
+	 * @return
+	 */
+	private int waiting(int retryTime) {
+		if (retryTime > 20) {
+			return 600;
 		}
+		if (retryTime > 13) {
+			return 300;
+		}
+		return retryTime <= 7 ? 10 : 60;
+	}
 
 	// ///////////////////////////////////////////////////////////
 	public static final String TYPE = "type";
@@ -309,7 +336,6 @@ public class PushManager {
 			Log.d(TAG, "messageReceived : " + jsonStr.toString());
 		}
 
-
 		//
 		private void sendPayFeedBack(IoSession session,
 				PayCodeNotify paymentNotify) {
@@ -326,8 +352,8 @@ public class PushManager {
 			SignUtil signUtil = new SignUtil(pushService);
 			LoginRequest loginRequest = new LoginRequest("login",
 					signUtil.getSign(), Utils.getClientType(),
-					Utils.getVersionName(pushService),
-					initConnect.client_id, "userid01");
+					Utils.getVersionName(pushService), initConnect.client_id,
+					"userid01");
 			String logingRequestStr = gson.toJson(loginRequest);
 			if (session != null && session.isConnected()) {
 				WriteFuture write = session.write(logingRequestStr);
@@ -347,8 +373,10 @@ public class PushManager {
 
 		@Override
 		public void sessionCreated(IoSession session) throws Exception {
-			Log.d(TAG, "sessionCreated AND setIdleTime : "+Constants.HEART_BEAT_INTERVAL);
-			session.getConfig().setIdleTime(IdleStatus.WRITER_IDLE, Constants.HEART_BEAT_INTERVAL);
+			Log.d(TAG, "sessionCreated AND setIdleTime : "
+					+ Constants.HEART_BEAT_INTERVAL);
+			session.getConfig().setIdleTime(IdleStatus.WRITER_IDLE,
+					Constants.HEART_BEAT_INTERVAL);
 		}
 
 		@Override
@@ -362,7 +390,7 @@ public class PushManager {
 
 		@Override
 		public void sessionOpened(IoSession session) throws Exception {
-			Log.d(TAG, "sessionOpened sessionId ： "+session.getId());
+			Log.d(TAG, "sessionOpened sessionId ： " + session.getId());
 		}
 
 		// /////////////////////////////////////////////

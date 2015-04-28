@@ -70,12 +70,16 @@ public class PushService extends Service {
 	@Deprecated
 	public void onStart(Intent intent, int startId) {
 		super.onStart(intent, startId);
-		boolean wakeup = intent.getBooleanExtra(Constants.ALARM_WAKEUP_TAG,
-				false);
-		boolean sessionIsConnected = pushManager.sessionIsConnected();
-		Log.d(TAG, " onStart  wakeup : " + wakeup+" sessionIsConnected : "+sessionIsConnected);
-		if (wakeup && sessionIsConnected) {
-			return;
+		Log.d(TAG, " onStart intent == null " + (intent == null));
+		if (intent != null) {
+			boolean wakeup = intent.getBooleanExtra(Constants.ALARM_WAKEUP_TAG,
+					false);
+			boolean sessionIsConnected = pushManager.sessionIsConnected();
+			Log.d(TAG, "  wakeup : " + wakeup + " sessionIsConnected : "
+					+ sessionIsConnected);
+			if (wakeup && sessionIsConnected) {
+				return;
+			}
 		}
 		connect();
 	}
