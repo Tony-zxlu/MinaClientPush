@@ -31,6 +31,7 @@ import com.ucheuxing.push.bean.LoginResponse;
 import com.ucheuxing.push.bean.PayCodeNotify;
 import com.ucheuxing.push.receiver.UUPushBaseReceiver;
 import com.ucheuxing.push.util.Constants;
+import com.ucheuxing.push.util.Logger;
 import com.ucheuxing.push.util.SharedPreferUtils;
 import com.ucheuxing.push.util.SignUtil;
 import com.ucheuxing.push.util.ToastUtils;
@@ -55,14 +56,17 @@ public class PushManager {
 	private int connectTime, reConnectTime;
 	private boolean isConnecting = false;
 
+	private Logger logger;
+
 	public PushManager(PushService pushService) {
 		super();
 		this.pushService = pushService;
+		logger = new Logger(TAG, Logger.TONY);
 		gson = new Gson();
 		receiveDataHandler = new ReceiveDataHandler(pushService);
 		heartBeatJson = gson.toJson(new HeartBeat("ping"));
 		heartBeatFeedBackJson = gson.toJson(new HeartBeat("pong"));
-		Log.d(TAG, " heartBeatJson : " + heartBeatJson
+		logger.d(" heartBeatJson : " + heartBeatJson
 				+ " heartBeatFeedBackJson : " + heartBeatFeedBackJson);
 	}
 
@@ -76,14 +80,14 @@ public class PushManager {
 
 	public void sendPingMsg() {
 		if (sessionIsConnected()) {
-			Log.d(TAG, " send ping msg ");
+			logger.d(" send ping msg ");
 			ioSession.write(heartBeatJson);
 		}
 	}
 
 	private void doConnect() {
 		if (isConnecting) {
-			Log.i(TAG, " doConnect isConnecting exit ");
+			logger.i(" doConnect isConnecting exit ");
 			return;
 		}
 
@@ -93,7 +97,7 @@ public class PushManager {
 			public void run() {
 				try {
 					isConnecting = true;
-					Log.i(TAG, "建立connect对象 ");
+					logger.i("建立connect对象 ");
 					// 1.建立connect对象
 					connector = new NioSocketConnector();
 					// 2.为connector设置handler
@@ -136,17 +140,17 @@ public class PushManager {
 						try {
 
 							if (sessionIsConnected()) {
-								Log.d(TAG, "连接服务器---已经登录。。。。 退出");
+								logger.d("连接服务器---已经登录。。。。 退出");
 								break;
 							}
 
 							if (!Utils.isNetworkConnected(pushService)) {
-								Log.d(TAG, "连接服务器---重新连接服器， 无网络。。。。 退出");
+								logger.d("连接服务器---重新连接服器， 无网络。。。。 退出");
 								return;
 							}
 
 							if (connector != null && connector.isDisposed()) {
-								Log.d(TAG, "连接服务器---connector已经销毁了。。。。 退出");
+								logger.d("连接服务器---connector已经销毁了。。。。 退出");
 								break;
 							}
 							ConnectFuture future = connector.connect();
@@ -154,16 +158,15 @@ public class PushManager {
 							future.awaitUninterruptibly();
 							// 获取会话
 							ioSession = future.getSession();
-							Log.d(TAG,
-									"连接服务端"
-											+ host
-											+ ":"
-											+ port
-											+ "[成功]"
-											+ ",,时间:"
-											+ new SimpleDateFormat(
-													"yyyy-MM-dd HH:mm:ss")
-													.format(new Date()));
+							logger.d("连接服务端"
+									+ host
+									+ ":"
+									+ port
+									+ "[成功]"
+									+ ",,时间:"
+									+ new SimpleDateFormat(
+											"yyyy-MM-dd HH:mm:ss")
+											.format(new Date()));
 							break;
 						} catch (RuntimeIoException e) {
 							Log.d(TAG,
@@ -180,7 +183,7 @@ public class PushManager {
 											+ e.getMessage(), e);
 							try {
 								int waiting = waiting(connectTime++);
-								Log.d(TAG, " reTry to connect server in "
+								logger.d(" reTry to connect server in "
 										+ waiting + " s "
 										+ " current connectTime : "
 										+ connectTime);
@@ -204,40 +207,39 @@ public class PushManager {
 		for (;;) {
 			try {
 				int waiting = waiting(reConnectTime++);
-				Log.d(TAG, " reConnect server in " + waiting
+				logger.d(" reConnect server in " + waiting
 						+ " s  , current reConnectTime : " + reConnectTime);
 				Thread.sleep(1000 * waiting);
 				if (!Utils.isNetworkConnected(pushService)) {
-					Log.d(TAG, "reConnection 无网络。。。。 退出");
+					logger.d("reConnection 无网络。。。。 退出");
 					break;
 				}
 
 				if (sessionIsConnected()) {
-					Log.d(TAG, "已经登录。。。。 退出");
+					logger.d("已经登录。。。。 退出");
 					break;
 				}
 
 				if (connector != null && connector.isDisposed()) {
-					Log.d(TAG, "connector已经销毁了。。。。 退出");
+					logger.d("connector已经销毁了。。。。 退出");
 					break;
 				}
 				ConnectFuture future = connector.connect();
 				future.awaitUninterruptibly();
 				ioSession = future.getSession();
 				if (ioSession.isConnected()) {
-					Log.d(TAG, "断线重连["
+					logger.d((String) ("断线重连["
 							+ connector.getDefaultRemoteAddress().getHostName()
 							+ ":"
-							+ connector.getDefaultRemoteAddress().getPort()
-							+ "]成功");
+							+ connector.getDefaultRemoteAddress().getPort() + "]成功"));
 					break;
 				} else {
-					Log.d(TAG, "断线重连失败");
+					logger.d("断线重连失败");
 				}
 
 			} catch (Exception e) {
 				// e.printStackTrace();
-				Log.d(TAG, "重连服务器登录失败 :" + e.getMessage());
+				logger.d("重连服务器登录失败 :" + e.getMessage());
 			}
 		}
 	}
@@ -286,20 +288,19 @@ public class PushManager {
 		@Override
 		public void exceptionCaught(IoSession session, Throwable cause)
 				throws Exception {
-			Log.d(TAG, "exceptionCaught" + cause.getMessage());
+			logger.d(cause.getMessage());
 		}
 
 		@Override
 		public void messageReceived(IoSession session, Object message)
 				throws Exception {
-			Log.d(TAG, "============start=============="
-					+ (message == null ? "NULL" : message.toString()));
+			logger.d(message);
 			if (message == null)
 				return;
 			if (!(message instanceof String))
 				return;
 			String jsonStr = (String) message;
-			Log.d(TAG, jsonStr);
+			logger.d(jsonStr);
 			// 过滤类型
 			Intent intent = new Intent(UUPushBaseReceiver.UCHEUXING_PUSH_ACTION);
 			BusinessType type = getTypeFromJson(jsonStr);
@@ -324,7 +325,7 @@ public class PushManager {
 						LoginResponse.class);
 				intent.putExtra(DATA, loginResponse);
 				if (loginResponse.code == BaseBean.CODE_OK) {
-					Log.d(TAG, " login success ");
+					logger.d(" login success ");
 				}
 				break;
 
@@ -343,12 +344,9 @@ public class PushManager {
 			default:
 				break;
 			}
-
 			pushService.sendBroadcast(intent);
-			Log.d(TAG, "messageReceived : " + jsonStr.toString());
 		}
 
-		//
 		private void sendPayFeedBack(IoSession session,
 				PayCodeNotify paymentNotify) {
 
@@ -375,17 +373,17 @@ public class PushManager {
 		@Override
 		public void messageSent(IoSession session, Object message)
 				throws Exception {
-			Log.d(TAG, "messageSent : " + message.toString());
+			logger.d(message);
 		}
 
 		@Override
 		public void sessionClosed(IoSession session) throws Exception {
-			Log.d(TAG, "sessionClosed");
+			logger.d(session);
 		}
 
 		@Override
 		public void sessionCreated(IoSession session) throws Exception {
-			Log.d(TAG, "sessionCreated ");
+			logger.d(session);
 			// session.getConfig().setIdleTime(IdleStatus.WRITER_IDLE,
 			// Constants.HEART_BEAT_INTERVAL);
 		}
@@ -393,15 +391,12 @@ public class PushManager {
 		@Override
 		public void sessionIdle(IoSession session, IdleStatus status)
 				throws Exception {
-			Log.d(TAG, "sessionIdle and send ping messgae ");
-			// if (session != null) {
-			// session.write(heartBeatJson);
-			// }
+			logger.d(status);
 		}
 
 		@Override
 		public void sessionOpened(IoSession session) throws Exception {
-			Log.d(TAG, "sessionOpened sessionId ： " + session.getId());
+			logger.d(session);
 		}
 
 		// /////////////////////////////////////////////
@@ -412,7 +407,7 @@ public class PushManager {
 			try {
 				JSONObject jsonObject = new JSONObject(jsonStr);
 				String typeStr = jsonObject.getString(TYPE).toUpperCase();
-				Log.d(TAG, " typeStr : " + typeStr);
+				logger.d(typeStr);
 				type = BusinessType.valueOf(typeStr);
 			} catch (JSONException e) {
 				e.printStackTrace();

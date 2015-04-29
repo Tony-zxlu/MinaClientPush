@@ -10,11 +10,11 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
 import com.ucheuxing.push.receiver.ConnectivityReceiver;
 import com.ucheuxing.push.receiver.PhoneStateChangeListener;
 import com.ucheuxing.push.util.Constants;
+import com.ucheuxing.push.util.Logger;
 
 public class PushService extends Service {
 
@@ -26,8 +26,10 @@ public class PushService extends Service {
 	private TelephonyManager telephonyManager;
 	private PushManager pushManager;
 	
+	private Logger logger;
 	public PushService() {
 		super();
+		logger = new Logger(TAG, Logger.TONY);
 		connectivityReceiver = new ConnectivityReceiver(this);
 		phoneStateListener = new PhoneStateChangeListener(this);
 	}
@@ -35,7 +37,7 @@ public class PushService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		Log.d(TAG, " onCreate  ");
+		logger.d("------oncreate-------");
 		setAlarmWakeup();
 		telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 		registerConnectivityReceiver();
@@ -70,12 +72,12 @@ public class PushService extends Service {
 	@Deprecated
 	public void onStart(Intent intent, int startId) {
 		super.onStart(intent, startId);
-		Log.d(TAG, " onStart intent == null " + (intent == null));
+		logger.d(" onStart "+intent);
 		if (intent != null) {
 			boolean wakeup = intent.getBooleanExtra(Constants.ALARM_WAKEUP_TAG,
 					false);
 			boolean sessionIsConnected = pushManager.sessionIsConnected();
-			Log.d(TAG, "  wakeup : " + wakeup + " sessionIsConnected : "
+			logger.d("  wakeup : " + wakeup + " sessionIsConnected : "
 					+ sessionIsConnected);
 			if (wakeup && sessionIsConnected) {
 				pushManager.sendPingMsg();
@@ -87,20 +89,20 @@ public class PushService extends Service {
 
 	@Override
 	public IBinder onBind(Intent intent) {
-		Log.d(TAG, " onBind ");
+		logger.d(" onBind ");
 		return null;
 	}
 
 	@Override
 	public void onRebind(Intent intent) {
-		Log.d(TAG, " onRebind ");
+		logger.d(" onRebind ");
 		super.onRebind(intent);
 	}
 
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		Log.d(TAG, " onDestroy ");
+		logger.d(" onDestroy ");
 		unregisterConnectivityReceiver();
 		if (pushManager != null) {
 			pushManager.disConnect();
@@ -109,7 +111,7 @@ public class PushService extends Service {
 	}
 
 	private void registerConnectivityReceiver() {
-		Log.d(TAG, "registerConnectivityReceiver()...");
+		logger.d("registerConnectivityReceiver()...");
 		telephonyManager.listen(phoneStateListener,
 				PhoneStateListener.LISTEN_DATA_CONNECTION_STATE);
 		IntentFilter filter = new IntentFilter();
@@ -118,7 +120,7 @@ public class PushService extends Service {
 	}
 
 	private void unregisterConnectivityReceiver() {
-		Log.d(TAG, "unregisterConnectivityReceiver()...");
+		logger.d("unregisterConnectivityReceiver()...");
 		telephonyManager.listen(phoneStateListener,
 				PhoneStateListener.LISTEN_NONE);
 		unregisterReceiver(connectivityReceiver);

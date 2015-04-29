@@ -8,6 +8,7 @@ import android.net.NetworkInfo;
 import android.util.Log;
 
 import com.ucheuxing.push.PushService;
+import com.ucheuxing.push.util.Logger;
 
 /**
  * A broadcast receiver to handle the changes in network connectiion states.
@@ -20,25 +21,28 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 	private PushService pushService;
 
 	private boolean isFirst = true;
-	
+
+	private Logger logger;
+
 	public ConnectivityReceiver(PushService pushService) {
 		this.pushService = pushService;
+		logger = new Logger(TAG, Logger.TONY);
 	}
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		Log.d(TAG, "ConnectivityReceiver.onReceive()...");
+		logger.d("ConnectivityReceiver.onReceive()...");
 		String action = intent.getAction();
-		Log.d(TAG, "action=" + action);
+		logger.d("action=" + action);
 		ConnectivityManager connectivityManager = (ConnectivityManager) context
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 
 		if (networkInfo != null) {
-			Log.d(TAG, "Network Type  = " + networkInfo.getTypeName());
-			Log.d(TAG, "Network State = " + networkInfo.getState());
+			logger.d("Network Type  = " + networkInfo.getTypeName());
+			logger.d("Network State = " + networkInfo.getState());
 			if (networkInfo.isConnected()) {
-				Log.i(TAG, "Network connected");
+				logger.i("Network connected");
 				if (isFirst) {
 					isFirst = false;
 					return;
@@ -52,7 +56,7 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 				pushService.connect();
 			}
 		} else {
-			Log.e(TAG, "Network unavailable");
+			logger.e("Network unavailable");
 		}
 	}
 

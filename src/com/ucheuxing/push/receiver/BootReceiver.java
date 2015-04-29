@@ -13,7 +13,7 @@ public class BootReceiver extends BroadcastReceiver {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		Log.d(TAG, " BootReceiver onReceive start TargetService ");
+		Log.d(TAG, " BootReceiver onReceive start PushService ");
 		context.startService(new Intent(context, PushService.class));
 	}
 }
