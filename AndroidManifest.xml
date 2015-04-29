@@ -14,7 +14,8 @@
     <uses-permission android:name="android.permission.FLASHLIGHT" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
- 	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name="com.ucheuxing.push.UcheUxingApplication"
         android:allowBackup="true"
@@ -41,7 +42,9 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="com.ucheuxing.push.PushService" >
+        <service
+            android:name="com.ucheuxing.push.PushService"
+            android:process=":push" >
             <intent-filter>
                 <action android:name="com.ucheuxing.push.PushService" />
             </intent-filter>

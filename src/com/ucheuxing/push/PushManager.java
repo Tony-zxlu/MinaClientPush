@@ -54,7 +54,7 @@ public class PushManager {
 	private Gson gson;
 	private int connectTime, reConnectTime;
 	private boolean isConnecting = false;
-	
+
 	public PushManager(PushService pushService) {
 		super();
 		this.pushService = pushService;
@@ -72,6 +72,13 @@ public class PushManager {
 
 	public boolean sessionIsConnected() {
 		return (ioSession != null) && ioSession.isConnected();
+	}
+
+	public void sendPingMsg() {
+		if (sessionIsConnected()) {
+			Log.d(TAG, " send ping msg ");
+			ioSession.write(heartBeatJson);
+		}
 	}
 
 	private void doConnect() {
@@ -92,15 +99,19 @@ public class PushManager {
 					// 2.为connector设置handler
 					connector.setHandler(receiveDataHandler);
 					// 3.为connector设置filter
-					connector.getFilterChain().addLast("codec",
-							new ProtocolCodecFilter(new TextLineCodecFactory()));
+					connector.getFilterChain()
+							.addLast(
+									"codec",
+									new ProtocolCodecFilter(
+											new TextLineCodecFactory()));
 
 					connector.getFilterChain().addFirst("reconnection",
 							new IoFilterAdapter() {
 
 								@Override
-								public void sessionClosed(NextFilter nextFilter,
-										IoSession session) throws Exception {
+								public void sessionClosed(
+										NextFilter nextFilter, IoSession session)
+										throws Exception {
 									reConnection();
 								}
 
@@ -123,17 +134,17 @@ public class PushManager {
 					connectTime = 0;
 					for (;;) {
 						try {
-							
+
 							if (sessionIsConnected()) {
 								Log.d(TAG, "连接服务器---已经登录。。。。 退出");
 								break;
 							}
-							
+
 							if (!Utils.isNetworkConnected(pushService)) {
 								Log.d(TAG, "连接服务器---重新连接服器， 无网络。。。。 退出");
 								return;
 							}
-							
+
 							if (connector != null && connector.isDisposed()) {
 								Log.d(TAG, "连接服务器---connector已经销毁了。。。。 退出");
 								break;
@@ -169,8 +180,9 @@ public class PushManager {
 											+ e.getMessage(), e);
 							try {
 								int waiting = waiting(connectTime++);
-								Log.d(TAG, " reTry to connect server in " + waiting
-										+ " s " + " current connectTime : "
+								Log.d(TAG, " reTry to connect server in "
+										+ waiting + " s "
+										+ " current connectTime : "
 										+ connectTime);
 								Thread.sleep(1000 * waiting);
 							} catch (InterruptedException e1) {
@@ -373,19 +385,18 @@ public class PushManager {
 
 		@Override
 		public void sessionCreated(IoSession session) throws Exception {
-			Log.d(TAG, "sessionCreated AND setIdleTime : "
-					+ Constants.HEART_BEAT_INTERVAL);
-			session.getConfig().setIdleTime(IdleStatus.WRITER_IDLE,
-					Constants.HEART_BEAT_INTERVAL);
+			Log.d(TAG, "sessionCreated ");
+			// session.getConfig().setIdleTime(IdleStatus.WRITER_IDLE,
+			// Constants.HEART_BEAT_INTERVAL);
 		}
 
 		@Override
 		public void sessionIdle(IoSession session, IdleStatus status)
 				throws Exception {
 			Log.d(TAG, "sessionIdle and send ping messgae ");
-			if (session != null) {
-				session.write(heartBeatJson);
-			}
+			// if (session != null) {
+			// session.write(heartBeatJson);
+			// }
 		}
 
 		@Override

@@ -78,6 +78,7 @@ public class PushService extends Service {
 			Log.d(TAG, "  wakeup : " + wakeup + " sessionIsConnected : "
 					+ sessionIsConnected);
 			if (wakeup && sessionIsConnected) {
+				pushManager.sendPingMsg();
 				return;
 			}
 		}
